@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<Version>1.0.0</Version>
+		<PackageId>VolocyNazad.$(AssemblyName)</PackageId>
+		<Authors>VolocyNazad</Authors>
+		<Company>VolocyNazad</Company>
+		<Description>Use this to ensure that events aren't handled too frequently.</Description>
+		<RepositoryUrl>https://github.com/VolocyNazad/Toolkit.Debouncing</RepositoryUrl>
+		<PackageTags>Debouncing;Throttling;</PackageTags>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
+
+</Project>
