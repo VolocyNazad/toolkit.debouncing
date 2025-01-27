@@ -15,7 +15,7 @@ namespace Toolkit.Debouncing
     /// in which no other pending event has fired. Only the last event in the
     /// sequence is fired.
     /// </summary>
-    internal class DebounceDispatcher : IDebounceDispatcher
+    public class DebounceDispatcher : IDebounceDispatcher
     {
         private DispatcherTimer timer;
         private DateTime timerStarted { get; set; } = DateTime.UtcNow.AddYears(-1);
