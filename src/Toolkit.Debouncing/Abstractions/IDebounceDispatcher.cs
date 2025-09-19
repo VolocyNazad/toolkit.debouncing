@@ -3,16 +3,16 @@ using System.Windows.Threading;
 
 namespace Toolkit.Debouncing.Abstractions
 {
-    internal interface IDebounceDispatcher
+    public interface IDebounceDispatcher
     {
-        void Debounce(int interval, Action<object> action,
-            object param = null,
+        void Debounce<TParameter>(int interval, Action<TParameter?> action,
+            TParameter? parameter = default,
             DispatcherPriority priority = DispatcherPriority.ApplicationIdle,
-            Dispatcher disp = null);
+            Dispatcher? dispatcher = null);
 
-        void Throttle(int interval, Action<object> action,
-            object param = null,
+        void Throttle<TParameter>(int interval, Action<TParameter?> action,
+            TParameter? parameter = default,
             DispatcherPriority priority = DispatcherPriority.ApplicationIdle,
-            Dispatcher disp = null);
+            Dispatcher? dispatcher = null);
     }
 }

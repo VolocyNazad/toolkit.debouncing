@@ -1,18 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net48</TargetFramework>
+		<TargetFrameworks>net48;net8-windows;net9-windows</TargetFrameworks>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<AssemblyVersion>1.0.2.0</AssemblyVersion>
-		<FileVersion>1.0.2.0</FileVersion>
-		<Version>1.0.2</Version>
+		<AssemblyVersion>1.0.3.0</AssemblyVersion>
+		<FileVersion>1.0.3.0</FileVersion>
+		<Version>1.0.3</Version>
+		<LangVersion>13</LangVersion>
 		<PackageId>VolocyNazad.$(AssemblyName)</PackageId>
 		<Authors>VolocyNazad</Authors>
 		<Company>VolocyNazad</Company>
+		<ImplicitUsings>true</ImplicitUsings>
+		<Nullable>enable</Nullable>
 		<Description>Use this to ensure that events aren't handled too frequently.</Description>
 		<RepositoryUrl>https://github.com/VolocyNazad/Toolkit.Debouncing</RepositoryUrl>
 		<PackageTags>Debouncing;Throttling;</PackageTags>
 		<UseWPF>true</UseWPF>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="AutoConstructor" Version="5.6.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
 
 </Project>

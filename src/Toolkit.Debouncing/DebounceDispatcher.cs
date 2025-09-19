@@ -1,5 +1,7 @@
-﻿using System.Windows.Threading;
-using System;
+﻿#if NET9_0
+
+using System.Windows;
+using System.Windows.Threading;
 using Toolkit.Debouncing.Abstractions;
 
 namespace Toolkit.Debouncing
@@ -15,70 +17,179 @@ namespace Toolkit.Debouncing
     /// in which no other pending event has fired. Only the last event in the
     /// sequence is fired.
     /// </summary>
-    public class DebounceDispatcher : IDebounceDispatcher
+    public sealed class DebounceDispatcher : IDebounceDispatcher, IDisposable
     {
-        private DispatcherTimer timer;
-        private DateTime timerStarted { get; set; } = DateTime.UtcNow.AddYears(-1);
+        private readonly Lock _lock = new();
+        private DispatcherTimer? timer;
+        private DateTime lastExecution = DateTime.UtcNow.AddYears(-1);
 
-        public void Debounce(int interval, Action<object> action,
-            object param = null,
-            DispatcherPriority priority = DispatcherPriority.ApplicationIdle,
-            Dispatcher disp = null)
+        public void Debounce<TParameter>(int interval, Action<TParameter?> action,
+            TParameter? parameter = default,
+            DispatcherPriority priority = DispatcherPriority.Normal,
+            Dispatcher? dispatcher = default)
         {
-            // kill pending timer and pending ticks
-            timer?.Stop();
-            timer = null;
-
-            if (disp == null)
-                disp = Dispatcher.CurrentDispatcher;
-
-            // timer is recreated for each event and effectively
-            // resets the timeout. Action only fires after timeout has fully
-            // elapsed without other events firing in between
-            timer = new DispatcherTimer(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+            using (_lock.EnterScope())
             {
-                if (timer == null)
+                timer?.Stop();
+
+                dispatcher ??= Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+
+                if (dispatcher.CheckAccess() && !dispatcher.HasShutdownStarted)
                     return;
 
-                timer?.Stop();
-                timer = null;
-                action.Invoke(param);
-            }, disp);
+                timer = new(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+                {
+                    using (_lock.EnterScope())
+                    {
+                        timer?.Stop();
+                    }
+                    action.Invoke(parameter);
+                }, dispatcher);
 
-            timer.Start();
+                timer.Start();
+            }
         }
 
-        public void Throttle(int interval, Action<object> action,
-            object param = null,
-            DispatcherPriority priority = DispatcherPriority.ApplicationIdle,
-            Dispatcher disp = null)
+        public void Throttle<TParameter>(int interval, Action<TParameter?> action,
+            TParameter? parameter = default,
+            DispatcherPriority priority = DispatcherPriority.Normal,
+            Dispatcher? dispatcher = default)
         {
-            // kill pending timer and pending ticks
-            timer?.Stop();
-            timer = null;
-
-            if (disp == null)
-                disp = Dispatcher.CurrentDispatcher;
-
-            var curTime = DateTime.UtcNow;
-
-            // if timeout is not up yet - adjust timeout to fire 
-            // with potentially new Action parameters           
-            if (curTime.Subtract(timerStarted).TotalMilliseconds < interval)
-                interval -= (int)curTime.Subtract(timerStarted).TotalMilliseconds;
-
-            timer = new DispatcherTimer(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+            using (_lock.EnterScope())
             {
-                if (timer == null)
+                timer?.Stop();
+
+                dispatcher ??= Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+
+                if (dispatcher.CheckAccess() && !dispatcher.HasShutdownStarted)
                     return;
 
+                var currentTime = DateTime.UtcNow;
+                var timeSinceLast = currentTime - lastExecution;
+
+                if (timeSinceLast.TotalMilliseconds < interval)
+                {
+                    interval -= (int)timeSinceLast.TotalMilliseconds;
+                }
+                else
+                {
+                    action.Invoke(parameter);
+                    lastExecution = currentTime;
+                    return;
+                }
+
+                timer = new(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+                {
+                    using (_lock.EnterScope())
+                    {
+                        timer?.Stop();
+                        lastExecution = DateTime.UtcNow;
+                    }
+                    action.Invoke(parameter);
+                }, dispatcher);
+
+                timer.Start();
+            }
+        }
+
+        public void Dispose()
+        {
+            using (_lock.EnterScope())
+            {
                 timer?.Stop();
                 timer = null;
-                action.Invoke(param);
-            }, disp);
-
-            timer.Start();
-            timerStarted = curTime;
+            }
         }
     }
 }
+
+#else
+using System.Windows;
+using System.Windows.Threading;
+using Toolkit.Debouncing.Abstractions;
+
+internal sealed class DebounceDispatcher : IDebounceDispatcher, IDisposable
+{
+    private readonly object _lockObject = new object();
+    private DispatcherTimer? timer;
+    private DateTime lastExecution = DateTime.UtcNow.AddYears(-1);
+
+    public void Debounce<TParameter>(int interval, Action<TParameter?> action,
+        TParameter? parameter = default,
+        DispatcherPriority priority = DispatcherPriority.Normal,
+        Dispatcher? dispatcher = default)
+    {
+        lock (_lockObject)
+        {
+            timer?.Stop();
+
+            dispatcher ??= Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+                return;
+
+            timer = new(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+            {
+                lock (_lockObject)
+                {
+                    timer?.Stop();
+                }
+                action.Invoke(parameter);
+            }, dispatcher);
+
+            timer.Start();
+        }
+    }
+
+    public void Throttle<TParameter>(int interval, Action<TParameter?> action,
+        TParameter? parameter = default,
+        DispatcherPriority priority = DispatcherPriority.Normal,
+        Dispatcher? dispatcher = default)
+    {
+        lock (_lockObject)
+        {
+            timer?.Stop();
+
+            dispatcher ??= Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+                return;
+
+            var currentTime = DateTime.UtcNow;
+            var timeSinceLast = currentTime - lastExecution;
+
+            if (timeSinceLast.TotalMilliseconds < interval)
+            {
+                interval -= (int)timeSinceLast.TotalMilliseconds;
+            }
+            else
+            {
+                action.Invoke(parameter);
+                lastExecution = currentTime;
+                return;
+            }
+
+            timer = new(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+            {
+                lock (_lockObject)
+                {
+                    timer?.Stop();
+                    lastExecution = DateTime.UtcNow;
+                }
+                action.Invoke(parameter);
+            }, dispatcher);
+
+            timer.Start();
+        }
+    }
+
+    public void Dispose()
+    {
+        lock (_lockObject)
+        {
+            timer?.Stop();
+            timer = null;
+        }
+    }
+}
+#endif
