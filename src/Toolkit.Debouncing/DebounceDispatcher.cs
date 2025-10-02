@@ -177,9 +177,35 @@ using Toolkit.Debouncing.Abstractions;
 
 public sealed class DebounceDispatcher : IDebounceDispatcher, IDisposable
 {
-    private readonly object _lockObject = new object();
+    private readonly object _lockObject = new();
     private DispatcherTimer? timer;
     private DateTime lastExecution = DateTime.UtcNow.AddYears(-1);
+
+    public void Debounce(int interval, Action action,
+        DispatcherPriority priority = DispatcherPriority.Normal,
+        Dispatcher? dispatcher = default)
+    {
+        lock (_lockObject)
+        {
+            timer?.Stop();
+
+            dispatcher ??= Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+                return;
+
+            timer = new(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+            {
+                lock (_lockObject)
+                {
+                    timer?.Stop();
+                }
+                action.Invoke();
+            }, dispatcher);
+
+            timer.Start();
+        }
+    }
 
     public void Debounce<TParameter>(int interval, Action<TParameter?> action,
         TParameter? parameter = default,
@@ -202,6 +228,47 @@ public sealed class DebounceDispatcher : IDebounceDispatcher, IDisposable
                     timer?.Stop();
                 }
                 action.Invoke(parameter);
+            }, dispatcher);
+
+            timer.Start();
+        }
+    }
+
+    public void Throttle(int interval, Action action,
+        DispatcherPriority priority = DispatcherPriority.Normal,
+        Dispatcher? dispatcher = default)
+    {
+        lock (_lockObject)
+        {
+            timer?.Stop();
+
+            dispatcher ??= Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+                return;
+
+            var currentTime = DateTime.UtcNow;
+            var timeSinceLast = currentTime - lastExecution;
+
+            if (timeSinceLast.TotalMilliseconds < interval)
+            {
+                interval -= (int)timeSinceLast.TotalMilliseconds;
+            }
+            else
+            {
+                action.Invoke();
+                lastExecution = currentTime;
+                return;
+            }
+
+            timer = new(TimeSpan.FromMilliseconds(interval), priority, (s, e) =>
+            {
+                lock (_lockObject)
+                {
+                    timer?.Stop();
+                    lastExecution = DateTime.UtcNow;
+                }
+                action.Invoke();
             }, dispatcher);
 
             timer.Start();
