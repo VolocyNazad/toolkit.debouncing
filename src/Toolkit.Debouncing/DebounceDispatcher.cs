@@ -17,7 +17,7 @@ namespace Toolkit.Debouncing
     /// in which no other pending event has fired. Only the last event in the
     /// sequence is fired.
     /// </summary>
-    public sealed class DebounceDispatcher : IDebounceDispatcher, IDisposable
+    public class DebounceDispatcher : IDebounceDispatcher, IDisposable
     {
         private readonly Lock _lock = new();
         private DispatcherTimer? timer;
@@ -108,7 +108,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Toolkit.Debouncing.Abstractions;
 
-internal sealed class DebounceDispatcher : IDebounceDispatcher, IDisposable
+internal class DebounceDispatcher : IDebounceDispatcher, IDisposable
 {
     private readonly object _lockObject = new object();
     private DispatcherTimer? timer;
