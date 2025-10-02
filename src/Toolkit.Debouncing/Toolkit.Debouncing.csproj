@@ -4,9 +4,9 @@
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 		<TargetFrameworks>net48;net8-windows;net9-windows</TargetFrameworks>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<AssemblyVersion>1.0.7.0</AssemblyVersion>
-		<FileVersion>1.0.7.0</FileVersion>
-		<Version>1.0.7</Version>
+		<AssemblyVersion>1.0.8.0</AssemblyVersion>
+		<FileVersion>1.0.8.0</FileVersion>
+		<Version>1.0.8</Version>
 		<LangVersion>13</LangVersion>
 		<PackageId>VolocyNazad.$(AssemblyName)</PackageId>
 		<Authors>VolocyNazad</Authors>
