@@ -20,6 +20,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Standardize GitHub Actions workflow filenames and display names by responsibility.
+
 - Derive package versions from stable `vMAJOR.MINOR.PATCH` tags with MinVer and validate packages before publishing.
 
 - Separate continuous integration from manually triggered NuGet publishing.
