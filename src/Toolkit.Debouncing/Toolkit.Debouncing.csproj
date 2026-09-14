@@ -4,9 +4,9 @@
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 		<TargetFrameworks>net48;net8-windows;net9-windows</TargetFrameworks>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<AssemblyVersion>1.0.9.0</AssemblyVersion>
-		<FileVersion>1.0.9.0</FileVersion>
-		<Version>1.0.9</Version>
+		<MinVerMinimumMajorMinor>1.0</MinVerMinimumMajorMinor>
+		<MinVerTagPrefix>v</MinVerTagPrefix>
+		<MinVerDefaultPreReleaseIdentifiers>dev</MinVerDefaultPreReleaseIdentifiers>
 		<LangVersion>13</LangVersion>
 		<PackageId>VolocyNazad.$(AssemblyName)</PackageId>
 		<Authors>VolocyNazad</Authors>
@@ -20,11 +20,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="MinVer" Version="8.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="AutoConstructor" Version="5.6.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="SonarAnalyzer.CSharp" Version="10.15.0.120848">
+		<PackageReference Include="SonarAnalyzer.CSharp" Version="10.33.0.1635">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
