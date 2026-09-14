@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-09-14
+
 ### Added
 
 - Validate required repository files, navigation links, and Solution Items in CI.
