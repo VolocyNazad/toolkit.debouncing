@@ -12,6 +12,8 @@ Read and follow the [development policy](policies/development.md) alongside this
 - `Toolkit.Debouncing.sln` - solution.
 - `src/Toolkit.Debouncing/` - library, dispatcher implementation, and abstractions.
 - `tests/Toolkit.Debouncing.Tests/` - WPF dispatcher tests.
+- `Directory.Packages.props` - central package versions for the library.
+- `tests/Directory.Packages.props` - test-only package versions, importing the root file.
 - `.github/workflows/` - CI and publishing workflows.
 
 ## Technology stack
@@ -19,7 +21,7 @@ Read and follow the [development policy](policies/development.md) alongside this
 - `Microsoft.NET.Sdk` with WPF and Windows targeting enabled.
 - Target frameworks as declared in the project: `net48;net8-windows;net9-windows`.
 - C# 13, nullable reference types, implicit usings.
-- AutoConstructor and SonarAnalyzer.CSharp; package versions are specified inline in the project.
+- AutoConstructor and SonarAnalyzer.CSharp; package versions use central package management (`Directory.Packages.props`), with test-only versions in `tests/Directory.Packages.props`.
 - The package version is derived by MinVer from stable `vMAJOR.MINOR.PATCH` Git tags; publish only tagged commits.
 - Dispatcher scheduling uses `DispatcherTimer`; the implementation has separate `NET9_0` and fallback branches for locking.
 - No Revit API dependency.
