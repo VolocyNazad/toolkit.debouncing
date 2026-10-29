@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "policies", "policies", "{16
 	ProjectSection(SolutionItems) = preProject
 		docs\policies\development.md = docs\policies\development.md
 		docs\policies\branching.md = docs\policies\branching.md
+		docs\policies\commits.md = docs\policies\commits.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solutionItems", "solutionItems", "{87DDF49F-81F8-4C4C-A2A4-D3453477B396}"
