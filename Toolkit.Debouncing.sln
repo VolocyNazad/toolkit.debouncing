@@ -12,17 +12,24 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{9FD07ABE-F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "policies", "policies", "{16831799-747E-4499-8656-667282E1BA41}"
 	ProjectSection(SolutionItems) = preProject
+		docs\policies\README.md = docs\policies\README.md
 		docs\policies\development.md = docs\policies\development.md
 		docs\policies\branching.md = docs\policies\branching.md
 		docs\policies\commits.md = docs\policies\commits.md
 		docs\policies\changelog.md = docs\policies\changelog.md
 		docs\policies\testing.md = docs\policies\testing.md
 		docs\policies\benchmarks.md = docs\policies\benchmarks.md
+		docs\policies\pull-requests.md = docs\policies\pull-requests.md
+		docs\policies\releases.md = docs\policies\releases.md
+		docs\policies\documentation.md = docs\policies\documentation.md
+		docs\policies\build.md = docs\policies\build.md
+		docs\policies\repository-maintenance.md = docs\policies\repository-maintenance.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solutionItems", "solutionItems", "{87DDF49F-81F8-4C4C-A2A4-D3453477B396}"
 	ProjectSection(SolutionItems) = preProject
 		global.json = global.json
+		Directory.Build.props = Directory.Build.props
 		Directory.Packages.props = Directory.Packages.props
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore

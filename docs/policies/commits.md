@@ -2,6 +2,8 @@
 
 Paths mentioned in this policy are relative to the repository root unless a Markdown link specifies otherwise.
 
+Read when: writing a commit message.
+
 Every commit message follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 `<type>(<scope>): <description>`. The message is read by people and by tooling: the type
 tells a reader what changed and how it affects a consumer of the release. It is a
@@ -46,9 +48,9 @@ feat(manifest): read the vendor from the .addin file
 fix(list): keep the selected row after a refresh
 docs(policy): describe the release changelog
 refactor(launcher): move the splitter handler into the observable block
-feat(sdk)!: drop the Revit 2021 target
+feat(api)!: drop the net48 target
 
-BREAKING CHANGE: the SDK no longer builds for Revit 2021.
+BREAKING CHANGE: the package no longer builds for .NET Framework 4.8.
 ```
 
 The changelog rules are in the [changelog policy](changelog.md); tests and the build are
