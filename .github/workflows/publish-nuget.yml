@@ -7,7 +7,7 @@ on:
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: true
-  NuGetDirectory: ${{ github.workspace}}/nuget
+  NuGetDirectory: ${{ github.workspace }}/artifacts
 
 defaults:
   run:
@@ -17,45 +17,13 @@ jobs:
   create_nuget:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
 
-    - name: Verify release tag
-      run: |
-        $tags = @(git tag --points-at HEAD | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })
-        if ($tags.Count -ne 1) {
-          throw "The selected commit must have exactly one stable tag such as 'v1.0.10'."
-        }
-        "RELEASE_VERSION=$($tags[0].Substring(1))" | Out-File -FilePath $env:GITHUB_ENV -Append
-    - name: Verify release changelog
+    - name: Verify release tag, changelog and branch
       shell: pwsh
-      run: |
-        $tag = @(git tag --points-at HEAD | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })[0]
-        $version = $tag -replace '^v', ''
-        $lines = @(Get-Content -LiteralPath CHANGELOG.md -Encoding utf8)
-
-        $start = -1
-        for ($i = 0; $i -lt $lines.Count; $i++) {
-          if ($lines[$i] -match '^## \[Unreleased\]') { $start = $i; break }
-        }
-        if ($start -lt 0) {
-          throw "CHANGELOG.md has no '## [Unreleased]' section."
-        }
-
-        $pending = @()
-        for ($i = $start + 1; $i -lt $lines.Count -and $lines[$i] -notmatch '^## '; $i++) {
-          if ($lines[$i].Trim() -and $lines[$i] -notmatch '^###\s') { $pending += $lines[$i] }
-        }
-        if ($pending.Count -gt 0) {
-          throw "CHANGELOG.md still has $($pending.Count) unreleased line(s). Move them into the '## [$version]' section before publishing."
-        }
-
-        $heading = "## [$version]"
-        $released = @($lines | Where-Object { $_.StartsWith($heading, [StringComparison]::Ordinal) })
-        if ($released.Count -ne 1) {
-          throw "CHANGELOG.md must contain exactly one '$heading - YYYY-MM-DD' section for the release tag $tag."
-        }
+      run: ./scripts/Verify-Release.ps1 -FromHeadTag -AncestorOf master
 
     # Install the .NET SDK indicated in the global.json file
     - name: Setup .NET
@@ -67,7 +35,7 @@ jobs:
           8.0.x
 
     # Create the NuGet package in the folder from the environment variable NuGetDirectory
-    - run: dotnet pack --configuration Release --output ${{ env.NuGetDirectory }}
+    - run: dotnet pack src/Toolkit.Debouncing/Toolkit.Debouncing.csproj --configuration Release --output ${{ env.NuGetDirectory }}
 
     - name: Verify NuGet package
       run: |
@@ -82,7 +50,9 @@ jobs:
           try { [xml]$nuspec = $reader.ReadToEnd() } finally { $reader.Dispose() }
         } finally { $archive.Dispose() }
         if ($nuspec.package.metadata.id -ne 'VolocyNazad.Toolkit.Debouncing') { throw "Unexpected package id '$($nuspec.package.metadata.id)'." }
-        if ($nuspec.package.metadata.version -ne $env:RELEASE_VERSION) { throw "Package version '$($nuspec.package.metadata.version)' does not match tag version '$env:RELEASE_VERSION'." }
+        $tag = @(git tag --points-at HEAD | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })[0]
+        $expectedVersion = $tag.Substring(1)
+        if ($nuspec.package.metadata.version -ne $expectedVersion) { throw "Package version '$($nuspec.package.metadata.version)' does not match expected release version '$expectedVersion'." }
 
     # Publish the NuGet package as an artifact, so they can be used in the following jobs
     - uses: actions/upload-artifact@v4
@@ -95,7 +65,7 @@ jobs:
   run_test:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -110,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ create_nuget, run_test ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # Download the NuGet package created in the previous job
       - uses: actions/download-artifact@v4
         with:

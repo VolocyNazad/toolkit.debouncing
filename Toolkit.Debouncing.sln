@@ -57,6 +57,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{249629DB-5208-4BF8-9802-42D7A303201D}"
 	ProjectSection(SolutionItems) = preProject
 		scripts\Validate-Repository.ps1 = scripts\Validate-Repository.ps1
+		scripts\Update-Changelog.ps1 = scripts\Update-Changelog.ps1
+		scripts\Verify-Release.ps1 = scripts\Verify-Release.ps1
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{BA962B19-A164-46B7-A38D-8F1B87C30EF7}"
