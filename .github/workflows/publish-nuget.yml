@@ -1,46 +1,58 @@
-# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-
 name: Publish NuGet package
+
 on:
-  workflow_dispatch: # Allow running the workflow manually from the GitHub UI
+  workflow_dispatch:
+
+concurrency:
+  group: publish-nuget-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 env:
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: true
-  NuGetDirectory: ${{ github.workspace }}/artifacts
-
-defaults:
-  run:
-    shell: pwsh
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  ContinuousIntegrationBuild: true
 
 jobs:
-  create_nuget:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+  publish:
+    name: windows-latest
+    runs-on: windows-latest
+    timeout-minutes: 30
 
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7.0.1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
     - name: Verify release tag, changelog and branch
       shell: pwsh
       run: ./scripts/Verify-Release.ps1 -FromHeadTag -AncestorOf master
-
-    # Install the .NET SDK indicated in the global.json file
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v5.4.0
       with:
         global-json-file: global.json
-        dotnet-version: |
-          9.0.x
-          8.0.x
-
-    # Create the NuGet package in the folder from the environment variable NuGetDirectory
-    - run: dotnet pack src/Toolkit.Debouncing/Toolkit.Debouncing.csproj --configuration Release --output ${{ env.NuGetDirectory }}
-
+        cache: true
+        cache-dependency-path: |
+          global.json
+          **/Directory.Packages.props
+          NuGet.config
+    - name: Clean package output
+      shell: pwsh
+      run: Remove-Item artifacts -Recurse -Force -ErrorAction SilentlyContinue
+    - name: Build
+      run: dotnet build --configuration Release -p:TreatWarningsAsErrors=true -p:EnforcePublicApiDocumentation=true /nologo
+    - name: Run tests
+      run: dotnet test --project tests/Toolkit.Debouncing.Tests/Toolkit.Debouncing.Tests.csproj --configuration Release --no-build
+    - name: Pack
+      run: dotnet pack src/Toolkit.Debouncing/Toolkit.Debouncing.csproj --configuration Release --no-build --output artifacts /nologo
     - name: Verify NuGet package
+      shell: pwsh
       run: |
         Add-Type -AssemblyName System.IO.Compression.FileSystem
-        $packages = @(Get-ChildItem "${{ env.NuGetDirectory }}" -File -Filter *.nupkg)
+        $packages = @(Get-ChildItem "artifacts" -Recurse -File -Filter *.nupkg)
         if ($packages.Count -ne 1) { throw "Expected exactly one NuGet package, found $($packages.Count)." }
         $archive = [System.IO.Compression.ZipFile]::OpenRead($packages[0].FullName)
         try {
@@ -49,60 +61,17 @@ jobs:
           $reader = [System.IO.StreamReader]::new($entries[0].Open())
           try { [xml]$nuspec = $reader.ReadToEnd() } finally { $reader.Dispose() }
         } finally { $archive.Dispose() }
-        if ($nuspec.package.metadata.id -ne 'VolocyNazad.Toolkit.Debouncing') { throw "Unexpected package id '$($nuspec.package.metadata.id)'." }
+        $id = $nuspec.SelectSingleNode("/*[local-name()='package']/*[local-name()='metadata']/*[local-name()='id']").InnerText
+        $version = $nuspec.SelectSingleNode("/*[local-name()='package']/*[local-name()='metadata']/*[local-name()='version']").InnerText
+        if ($id -ne 'VolocyNazad.Toolkit.Debouncing') { throw "Unexpected package id '$id'." }
         $tag = @(git tag --points-at HEAD | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })[0]
         $expectedVersion = $tag.Substring(1)
-        if ($nuspec.package.metadata.version -ne $expectedVersion) { throw "Package version '$($nuspec.package.metadata.version)' does not match expected release version '$expectedVersion'." }
+        if ($version -ne $expectedVersion) { throw "Package version '$version' does not match expected release version '$expectedVersion'." }
 
-    # Publish the NuGet package as an artifact, so they can be used in the following jobs
-    - uses: actions/upload-artifact@v4
-      with:
-        name: nuget
-        if-no-files-found: error
-        retention-days: 7
-        path: ${{ env.NuGetDirectory }}/*.nupkg
-
-  run_test:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-        dotnet-version: |
-          9.0.x
-          8.0.x
-    - name: Run tests
-      run: dotnet test --project tests/Toolkit.Debouncing.Tests/Toolkit.Debouncing.Tests.csproj --configuration Release
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [ create_nuget, run_test ]
-    steps:
-      - uses: actions/checkout@v4
-      # Download the NuGet package created in the previous job
-      - uses: actions/download-artifact@v4
-        with:
-          name: nuget
-          path: ${{ env.NuGetDirectory }}
-
-      # Install the .NET SDK indicated in the global.json file
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-          dotnet-version: |
-            9.0.x
-            8.0.x
-
-      # Publish all NuGet packages to NuGet.org
-      # Use --skip-duplicate to prevent errors if a package with the same version already exists.
-      # If you retry a failed workflow, already published packages will be skipped without error.
-      - name: Publish NuGet package
-        run: |
-          $packages = @(Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -File -Filter *.nupkg)
-          if ($packages.Count -ne 1) { throw "Expected exactly one validated NuGet package, found $($packages.Count)." }
-          foreach($file in $packages) {
-              dotnet nuget push $file --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
-          }
+    - name: Publish NuGet package
+      run: |
+        $packages = @(Get-ChildItem "artifacts" -Recurse -File -Filter *.nupkg)
+        if ($packages.Count -ne 1) { throw "Expected exactly one validated NuGet package, found $($packages.Count)." }
+        foreach($file in $packages) {
+            dotnet nuget push $file --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        }
