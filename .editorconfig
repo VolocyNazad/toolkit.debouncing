@@ -4,3 +4,12 @@ root = true
 charset = utf-8
 end_of_line = crlf
 trim_trailing_whitespace = true
+# The net48 target has no ArgumentNullException.ThrowIfNull, so the shared source keeps the explicit
+# null guard that CA1510 would replace.
+[src/Toolkit.Debouncing/DebounceDispatcher.cs]
+dotnet_diagnostic.CA1510.severity = none
+
+# Test methods follow the Method_Scenario_Expectation naming that the testing policy recommends;
+# CA1707 reports the underscores by design.
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
